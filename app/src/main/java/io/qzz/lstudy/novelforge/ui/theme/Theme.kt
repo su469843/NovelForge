@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalContext
  * 支持 6 套预设主题：purple / blue / green / orange / red / gray
  */
 private fun createColorScheme(themeName: String, darkTheme: Boolean): ColorScheme {
-    val colors = when (themeName) {
+    val colors: AppColors = when (themeName) {
         "blue" -> BlueColors
         "green" -> GreenColors
         "orange" -> OrangeColors

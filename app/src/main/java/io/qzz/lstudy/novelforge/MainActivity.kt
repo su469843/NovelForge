@@ -63,7 +63,7 @@ import java.util.Date
 import java.util.Locale
 
 /** 页面导航枚举 */
-private enum class Screen { Home, Settings }
+internal enum class Screen { Home, Settings }
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {

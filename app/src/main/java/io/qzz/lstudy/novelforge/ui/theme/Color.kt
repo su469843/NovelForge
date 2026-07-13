@@ -2,10 +2,54 @@ package io.qzz.lstudy.novelforge.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+/**
+ * 主题色板公共接口
+ * 所有色板 object 实现此接口，确保 Theme.kt 的 when 表达式能正确推断类型
+ */
+interface AppColors {
+    val LightPrimary: Color
+    val LightOnPrimary: Color
+    val LightPrimaryContainer: Color
+    val LightOnPrimaryContainer: Color
+    val LightSecondary: Color
+    val LightOnSecondary: Color
+    val LightSecondaryContainer: Color
+    val LightOnSecondaryContainer: Color
+    val LightTertiary: Color
+    val LightOnTertiary: Color
+    val LightTertiaryContainer: Color
+    val LightOnTertiaryContainer: Color
+    val LightBackground: Color
+    val LightOnBackground: Color
+    val LightSurface: Color
+    val LightOnSurface: Color
+    val LightSurfaceVariant: Color
+    val LightOnSurfaceVariant: Color
+
+    val DarkPrimary: Color
+    val DarkOnPrimary: Color
+    val DarkPrimaryContainer: Color
+    val DarkOnPrimaryContainer: Color
+    val DarkSecondary: Color
+    val DarkOnSecondary: Color
+    val DarkSecondaryContainer: Color
+    val DarkOnSecondaryContainer: Color
+    val DarkTertiary: Color
+    val DarkOnTertiary: Color
+    val DarkTertiaryContainer: Color
+    val DarkOnTertiaryContainer: Color
+    val DarkBackground: Color
+    val DarkOnBackground: Color
+    val DarkSurface: Color
+    val DarkOnSurface: Color
+    val DarkSurfaceVariant: Color
+    val DarkOnSurfaceVariant: Color
+}
+
 // ============================
 //  紫色（默认）
 // ============================
-object PurpleColors {
+object PurpleColors : AppColors {
     val LightPrimary = Color(0xFF6750A4)
     val LightOnPrimary = Color(0xFFFFFFFF)
     val LightPrimaryContainer = Color(0xFFEADDFF)
@@ -48,7 +92,7 @@ object PurpleColors {
 // ============================
 //  蓝色
 // ============================
-object BlueColors {
+object BlueColors : AppColors {
     val LightPrimary = Color(0xFF0061A4)
     val LightOnPrimary = Color(0xFFFFFFFF)
     val LightPrimaryContainer = Color(0xFFD1E4FF)
@@ -91,7 +135,7 @@ object BlueColors {
 // ============================
 //  绿色
 // ============================
-object GreenColors {
+object GreenColors : AppColors {
     val LightPrimary = Color(0xFF006B57)
     val LightOnPrimary = Color(0xFFFFFFFF)
     val LightPrimaryContainer = Color(0xFF7FF8D9)
@@ -134,7 +178,7 @@ object GreenColors {
 // ============================
 //  橙色（暖色调）
 // ============================
-object OrangeColors {
+object OrangeColors : AppColors {
     val LightPrimary = Color(0xFF904A00)
     val LightOnPrimary = Color(0xFFFFFFFF)
     val LightPrimaryContainer = Color(0xFFFFDCC3)
@@ -177,7 +221,7 @@ object OrangeColors {
 // ============================
 //  红色
 // ============================
-object RedColors {
+object RedColors : AppColors {
     val LightPrimary = Color(0xFFBA1A1A)
     val LightOnPrimary = Color(0xFFFFFFFF)
     val LightPrimaryContainer = Color(0xFFFFDAD6)
@@ -220,7 +264,7 @@ object RedColors {
 // ============================
 //  灰色（极简）
 // ============================
-object GrayColors {
+object GrayColors : AppColors {
     val LightPrimary = Color(0xFF5E5E5E)
     val LightOnPrimary = Color(0xFFFFFFFF)
     val LightPrimaryContainer = Color(0xFFE3E3E3)

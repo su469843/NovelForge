@@ -55,6 +55,7 @@ class CrashActivity : ComponentActivity() {
 @Composable
 fun CrashScreen(error: String, onDismiss: () -> Unit) {
     val clipboard = LocalClipboardManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -111,7 +112,7 @@ fun CrashScreen(error: String, onDismiss: () -> Unit) {
                     onClick = {
                         clipboard.setText(AnnotatedString(error))
                         Toast.makeText(
-                            it.context,
+                            context,
                             "已复制到剪贴板",
                             Toast.LENGTH_SHORT
                         ).show()
