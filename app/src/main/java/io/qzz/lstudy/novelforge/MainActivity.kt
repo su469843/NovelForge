@@ -107,6 +107,8 @@ fun NovelForgeApp(
     val appTheme by settingsViewModel.appTheme.collectAsStateWithLifecycle()
     val customBaseUrl by settingsViewModel.customBaseUrl.collectAsStateWithLifecycle()
     val customModel by settingsViewModel.customModel.collectAsStateWithLifecycle()
+    val customModels by settingsViewModel.customModels.collectAsStateWithLifecycle()
+    val activeProvider by settingsViewModel.activeProvider.collectAsStateWithLifecycle()
 
     /** 打开小说详情 */
     val openNovel: (Long) -> Unit = { id ->
@@ -131,10 +133,14 @@ fun NovelForgeApp(
         if (showCreateDialog) {
             CreateNovelDialog(
                 skills = skills,
+                customModels = customModels,
+                defaultProvider = activeProvider,
                 onDismiss = { showCreateDialog = false },
-                onCreate = { title, targetWords, _ ->
+                onCreate = { title, targetWords, targetChapters, provider, model, mode ->
                     scope.launch {
-                        val id = homeViewModel.createNovel(title, targetWords)
+                        // 同步选中的 provider 到设置
+                        settingsViewModel.setActiveProvider(provider)
+                        val id = homeViewModel.createNovel(title, targetWords, targetChapters, model)
                         showCreateDialog = false
                         openNovel(id)
                     }
@@ -157,11 +163,14 @@ fun NovelForgeApp(
             appTheme = appTheme,
             customBaseUrl = customBaseUrl,
             customModel = customModel,
+            customModels = customModels,
             onSetApiKey = { p, k -> settingsViewModel.setApiKey(p, k) },
             onSetExportMode = { settingsViewModel.setExportMode(it) },
             onSetTheme = { settingsViewModel.setTheme(it) },
             onSetCustomBaseUrl = { settingsViewModel.setCustomBaseUrl(it) },
-            onSetCustomModel = { settingsViewModel.setCustomModel(it) }
+            onSetCustomModel = { settingsViewModel.setCustomModel(it) },
+            onAddCustomModel = { p, m -> settingsViewModel.addCustomModel(p, m) },
+            onRemoveCustomModel = { p, m -> settingsViewModel.removeCustomModel(p, m) }
         )
     } else {
         when (currentScreen) {
@@ -178,12 +187,15 @@ fun NovelForgeApp(
                 currentTheme = appTheme,
                 customBaseUrl = customBaseUrl,
                 customModel = customModel,
+                customModels = customModels,
                 onBack = { currentScreen = Screen.Home },
                 onSetApiKey = { p, k -> settingsViewModel.setApiKey(p, k) },
                 onSetExportMode = { settingsViewModel.setExportMode(it) },
                 onSetTheme = { settingsViewModel.setTheme(it) },
                 onSetCustomBaseUrl = { settingsViewModel.setCustomBaseUrl(it) },
-                onSetCustomModel = { settingsViewModel.setCustomModel(it) }
+                onSetCustomModel = { settingsViewModel.setCustomModel(it) },
+                onAddCustomModel = { p, m -> settingsViewModel.addCustomModel(p, m) },
+                onRemoveCustomModel = { p, m -> settingsViewModel.removeCustomModel(p, m) }
             )
             Screen.NovelDetail -> Unit // 上面已处理
         }
@@ -192,10 +204,13 @@ fun NovelForgeApp(
     if (showCreateDialog) {
         CreateNovelDialog(
             skills = skills,
+            customModels = customModels,
+            defaultProvider = activeProvider,
             onDismiss = { showCreateDialog = false },
-            onCreate = { title, targetWords, _ ->
+            onCreate = { title, targetWords, targetChapters, provider, model, mode ->
                 scope.launch {
-                    val id = homeViewModel.createNovel(title, targetWords)
+                    settingsViewModel.setActiveProvider(provider)
+                    val id = homeViewModel.createNovel(title, targetWords, targetChapters, model)
                     showCreateDialog = false
                     openNovel(id)
                 }
@@ -219,11 +234,14 @@ internal fun TabletLayout(
     appTheme: String,
     customBaseUrl: String,
     customModel: String,
+    customModels: Map<String, List<String>>,
     onSetApiKey: (String, String) -> Unit,
     onSetExportMode: (String) -> Unit,
     onSetTheme: (String) -> Unit,
     onSetCustomBaseUrl: (String) -> Unit,
-    onSetCustomModel: (String) -> Unit
+    onSetCustomModel: (String) -> Unit,
+    onAddCustomModel: (String, String) -> Unit,
+    onRemoveCustomModel: (String, String) -> Unit
 ) {
     Row(modifier = Modifier.fillMaxSize()) {
         // 侧边栏
@@ -371,12 +389,15 @@ internal fun TabletLayout(
                     currentTheme = appTheme,
                     customBaseUrl = customBaseUrl,
                     customModel = customModel,
+                    customModels = customModels,
                     onBack = { onScreenChange(Screen.Home) },
                     onSetApiKey = onSetApiKey,
                     onSetExportMode = onSetExportMode,
                     onSetTheme = onSetTheme,
                     onSetCustomBaseUrl = onSetCustomBaseUrl,
-                    onSetCustomModel = onSetCustomModel
+                    onSetCustomModel = onSetCustomModel,
+                    onAddCustomModel = onAddCustomModel,
+                    onRemoveCustomModel = onRemoveCustomModel
                 )
             }
         }
@@ -415,6 +436,12 @@ fun SidebarNovelItem(
                 "${novel.currentWords} / ${novel.targetWords} 字",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            // token 用量
+            Text(
+                "Token: ${novel.totalTokens}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline
             )
         }
         IconButton(

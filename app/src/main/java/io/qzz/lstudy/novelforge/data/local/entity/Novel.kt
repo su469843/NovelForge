@@ -23,5 +23,11 @@ data class Novel(
     /** 当前已写字数 */
     val currentWords: Int = 0,
     /** 创建时间戳（毫秒） */
-    val createTime: Long
+    val createTime: Long,
+    /** 累计消耗的 token 总量（来自 AI 返回的 usage.total_tokens） */
+    val totalTokens: Int = 0,
+    /** 目标章节数（创建时设定，用于"一次性生成全部"模式） */
+    val targetChapters: Int = 0,
+    /** 使用的模型名（创建时选定） */
+    val model: String = ""
 )

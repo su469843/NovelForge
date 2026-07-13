@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,11 +18,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -51,12 +57,15 @@ fun SettingsScreen(
     currentTheme: String = "purple",
     customBaseUrl: String = "",
     customModel: String = "",
+    customModels: Map<String, List<String>> = emptyMap(),
     onBack: () -> Unit = {},
     onSetApiKey: (provider: String, key: String) -> Unit = { _, _ -> },
     onSetExportMode: (mode: String) -> Unit = {},
     onSetTheme: (theme: String) -> Unit = {},
     onSetCustomBaseUrl: (String) -> Unit = {},
-    onSetCustomModel: (String) -> Unit = {}
+    onSetCustomModel: (String) -> Unit = {},
+    onAddCustomModel: (provider: String, model: String) -> Unit = { _, _ -> },
+    onRemoveCustomModel: (provider: String, model: String) -> Unit = { _, _ -> }
 ) {
     Scaffold(
         topBar = {
@@ -99,7 +108,12 @@ fun SettingsScreen(
                     initial = info.initial,
                     callable = info.callable,
                     currentKey = apiKeys[info.key] ?: "",
-                    onSave = { onSetApiKey(info.key, it) }
+                    onSave = { onSetApiKey(info.key, it) },
+                    builtinModels = SettingsViewModel.PROVIDERS.firstOrNull { it.key == info.key }?.models
+                        ?: emptyList(),
+                    customModels = customModels[info.key] ?: emptyList(),
+                    onAddCustomModel = { onAddCustomModel(info.key, it) },
+                    onRemoveCustomModel = { onRemoveCustomModel(info.key, it) }
                 )
             }
 
@@ -115,7 +129,12 @@ fun SettingsScreen(
                     initial = info.initial,
                     callable = info.callable,
                     currentKey = apiKeys[info.key] ?: "",
-                    onSave = { onSetApiKey(info.key, it) }
+                    onSave = { onSetApiKey(info.key, it) },
+                    builtinModels = SettingsViewModel.PROVIDERS.firstOrNull { it.key == info.key }?.models
+                        ?: emptyList(),
+                    customModels = customModels[info.key] ?: emptyList(),
+                    onAddCustomModel = { onAddCustomModel(info.key, it) },
+                    onRemoveCustomModel = { onRemoveCustomModel(info.key, it) }
                 )
             }
 
@@ -324,7 +343,9 @@ fun CustomProviderSection(
 
 /**
  * 单个 API Key 输入行（含供应商圆形头像）
+ * 在 API Key 输入行下方附带模型管理区块：内置模型只读展示 + 自定义模型增删
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ApiKeyField(
     provider: String,
@@ -332,9 +353,15 @@ fun ApiKeyField(
     initial: String,
     callable: Boolean,
     currentKey: String,
-    onSave: (String) -> Unit
+    onSave: (String) -> Unit,
+    builtinModels: List<String> = emptyList(),
+    customModels: List<String> = emptyList(),
+    onAddCustomModel: (String) -> Unit = {},
+    onRemoveCustomModel: (String) -> Unit = {}
 ) {
     var keyValue by remember(provider) { mutableStateOf(currentKey) }
+    // 新模型名输入框状态
+    var newModelName by remember(provider) { mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -370,6 +397,122 @@ fun ApiKeyField(
             Spacer(Modifier.width(8.dp))
             Button(onClick = { onSave(keyValue) }) {
                 Text("保存")
+            }
+        }
+
+        // 模型管理区块：内置模型只读 + 自定义模型增删
+        Spacer(Modifier.height(8.dp))
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    "模型列表",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium
+                )
+
+                // 内置模型（只读展示）
+                if (builtinModels.isNotEmpty()) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "内置模型",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        builtinModels.forEach { model ->
+                            Text(
+                                text = model,
+                                modifier = Modifier
+                                    .background(
+                                        color = MaterialTheme.colorScheme.surface,
+                                        shape = MaterialTheme.shapes.small
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // 自定义模型（可删除）
+                if (customModels.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "自定义模型",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        customModels.forEach { model ->
+                            Row(
+                                modifier = Modifier
+                                    .background(
+                                        color = MaterialTheme.colorScheme.surface,
+                                        shape = MaterialTheme.shapes.small
+                                    )
+                                    .padding(start = 8.dp, end = 2.dp, top = 2.dp, bottom = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = model,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                IconButton(
+                                    onClick = { onRemoveCustomModel(model) },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "删除模型 $model",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 添加自定义模型输入框 + 按钮
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = newModelName,
+                        onValueChange = { newModelName = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("输入模型名添加到自定义") },
+                        singleLine = true
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            val name = newModelName.trim()
+                            if (name.isNotEmpty()) {
+                                onAddCustomModel(name)
+                                newModelName = ""
+                            }
+                        }
+                    ) {
+                        Text("添加")
+                    }
+                }
             }
         }
     }

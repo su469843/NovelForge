@@ -39,14 +39,22 @@ class NovelRepository @Inject constructor(
     suspend fun getNovel(novelId: Long): Novel? = novelDao.getById(novelId)
 
     /** 创建一本新小说，返回新 ID */
-    suspend fun createNovel(title: String, targetWords: Int): Long {
+    suspend fun createNovel(
+        title: String,
+        targetWords: Int,
+        targetChapters: Int = 0,
+        model: String = ""
+    ): Long {
         val now = System.currentTimeMillis()
         return novelDao.insert(
             Novel(
                 title = title,
                 targetWords = targetWords,
                 currentWords = 0,
-                createTime = now
+                createTime = now,
+                totalTokens = 0,
+                targetChapters = targetChapters,
+                model = model
             )
         )
     }
@@ -63,6 +71,18 @@ class NovelRepository @Inject constructor(
     /** 更新小说当前字数 */
     suspend fun updateNovelCurrentWords(novelId: Long, currentWords: Int) =
         novelDao.updateCurrentWords(novelId, currentWords)
+
+    /** 累加 token 用量（来自 AI 返回的 usage.total_tokens） */
+    suspend fun addNovelTokens(novelId: Long, tokens: Int) =
+        novelDao.addTokens(novelId, tokens)
+
+    /** 更新目标章节数 */
+    suspend fun updateNovelTargetChapters(novelId: Long, targetChapters: Int) =
+        novelDao.updateTargetChapters(novelId, targetChapters)
+
+    /** 更新使用的模型 */
+    suspend fun updateNovelModel(novelId: Long, model: String) =
+        novelDao.updateModel(novelId, model)
 
     // ===================== Chapter 操作 =====================
 

@@ -83,6 +83,24 @@ class SettingRepository @Inject constructor(
     /** 设置自定义供应商的模型名 */
     suspend fun setCustomModel(model: String) = dataStore.setCustomModel(model)
 
+    // ===================== 用户自定义模型列表 =====================
+
+    /** 观察某个 provider 的自定义模型列表 */
+    fun observeCustomModels(provider: String): Flow<List<String>> =
+        dataStore.observeCustomModels(provider)
+
+    /** 设置某个 provider 的自定义模型列表 */
+    suspend fun setCustomModels(provider: String, models: List<String>) =
+        dataStore.setCustomModels(provider, models)
+
+    /** 追加自定义模型 */
+    suspend fun addCustomModel(provider: String, model: String) =
+        dataStore.addCustomModel(provider, model)
+
+    /** 删除自定义模型 */
+    suspend fun removeCustomModel(provider: String, model: String) =
+        dataStore.removeCustomModel(provider, model)
+
     companion object {
         /** 本地导出模式标识 */
         const val EXPORT_MODE_LOCAL = SettingsDataStore.DEFAULT_EXPORT_MODE

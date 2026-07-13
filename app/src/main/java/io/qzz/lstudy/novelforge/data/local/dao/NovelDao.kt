@@ -50,4 +50,16 @@ interface NovelDao {
     /** 更新当前字数 */
     @Query("UPDATE novels SET currentWords = :currentWords WHERE id = :novelId")
     suspend fun updateCurrentWords(novelId: Long, currentWords: Int)
+
+    /** 累加 token 用量 */
+    @Query("UPDATE novels SET totalTokens = totalTokens + :tokens WHERE id = :novelId")
+    suspend fun addTokens(novelId: Long, tokens: Int)
+
+    /** 更新目标章节数 */
+    @Query("UPDATE novels SET targetChapters = :targetChapters WHERE id = :novelId")
+    suspend fun updateTargetChapters(novelId: Long, targetChapters: Int)
+
+    /** 更新使用的模型 */
+    @Query("UPDATE novels SET model = :model WHERE id = :novelId")
+    suspend fun updateModel(novelId: Long, model: String)
 }

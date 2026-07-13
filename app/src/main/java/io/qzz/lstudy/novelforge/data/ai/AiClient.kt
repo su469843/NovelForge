@@ -15,9 +15,20 @@ import javax.inject.Singleton
  * AI 调用结果
  */
 sealed class AiResult {
-    data class Success(val content: String) : AiResult()
+    /**
+     * 成功
+     * @param content  返回的文本内容
+     * @param totalTokens  本次调用消耗的 token 总量（来自 usage.total_tokens），无 usage 字段时为 0
+     */
+    data class Success(val content: String, val totalTokens: Int = 0) : AiResult()
     data class Error(val message: String, val code: Int = -1) : AiResult()
 }
+
+/**
+ * 对话消息（role + content）
+ * role: "system" / "user" / "assistant"
+ */
+data class ChatMessage(val role: String, val content: String)
 
 /**
  * AI 客户端：调用 OpenAI 兼容协议的 chat/completions 接口
@@ -30,7 +41,7 @@ sealed class AiResult {
 class AiClient @Inject constructor() {
 
     /**
-     * 调用 AI 生成文本
+     * 单轮调用 AI 生成文本
      *
      * @param baseUrl  OpenAI 兼容协议的 BaseUrl，如 https://api.deepseek.com/v1
      * @param apiKey   API Key
@@ -46,6 +57,30 @@ class AiClient @Inject constructor() {
         model: String,
         systemPrompt: String,
         userPrompt: String,
+        temperature: Double = 0.8,
+        maxTokens: Int = 2048
+    ): AiResult = chatWithMessages(
+        baseUrl = baseUrl,
+        apiKey = apiKey,
+        model = model,
+        messages = listOf(
+            ChatMessage("system", systemPrompt),
+            ChatMessage("user", userPrompt)
+        ),
+        temperature = temperature,
+        maxTokens = maxTokens
+    )
+
+    /**
+     * 多轮对话调用
+     *
+     * @param messages  完整对话历史，按时间顺序
+     */
+    suspend fun chatWithMessages(
+        baseUrl: String,
+        apiKey: String,
+        model: String,
+        messages: List<ChatMessage>,
         temperature: Double = 0.8,
         maxTokens: Int = 2048
     ): AiResult = withContext(Dispatchers.IO) {
@@ -78,14 +113,12 @@ class AiClient @Inject constructor() {
                 put("temperature", temperature)
                 put("max_tokens", maxTokens)
                 put("messages", JSONArray().apply {
-                    put(JSONObject().apply {
-                        put("role", "system")
-                        put("content", systemPrompt)
-                    })
-                    put(JSONObject().apply {
-                        put("role", "user")
-                        put("content", userPrompt)
-                    })
+                    messages.forEach { m ->
+                        put(JSONObject().apply {
+                            put("role", m.role)
+                            put("content", m.content)
+                        })
+                    }
                 })
             }
 
@@ -103,21 +136,25 @@ class AiClient @Inject constructor() {
                 return@withContext AiResult.Error("请求失败 (HTTP $code)：$msg", code)
             }
 
-            val content = try {
-                JSONObject(responseText)
-                    .optJSONArray("choices")
-                    ?.optJSONObject(0)
-                    ?.optJSONObject("message")
-                    ?.optString("content")
-                    ?: ""
-            } catch (e: Exception) {
+            val json = try { JSONObject(responseText) } catch (e: Exception) {
                 return@withContext AiResult.Error("解析响应失败：${e.message}")
             }
+
+            val content = json
+                .optJSONArray("choices")
+                ?.optJSONObject(0)
+                ?.optJSONObject("message")
+                ?.optString("content")
+                ?: ""
 
             if (content.isBlank()) {
                 return@withContext AiResult.Error("AI 返回内容为空")
             }
-            AiResult.Success(content)
+
+            // 解析 usage.total_tokens（不同供应商字段可能略有差异，做容错）
+            val totalTokens = json.optJSONObject("usage")?.optInt("total_tokens", 0) ?: 0
+
+            AiResult.Success(content, totalTokens)
         } catch (e: java.net.SocketTimeoutException) {
             AiResult.Error("请求超时：${e.message}")
         } catch (e: java.net.UnknownHostException) {

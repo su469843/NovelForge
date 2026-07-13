@@ -35,8 +35,13 @@ class HomeViewModel @Inject constructor(
     val createdNovelId: StateFlow<Long?> = _createdNovelId.asStateFlow()
 
     /** 创建一部新小说，返回新 ID */
-    suspend fun createNovel(title: String, targetWords: Int): Long {
-        val id = novelRepository.createNovel(title, targetWords)
+    suspend fun createNovel(
+        title: String,
+        targetWords: Int,
+        targetChapters: Int = 0,
+        model: String = ""
+    ): Long {
+        val id = novelRepository.createNovel(title, targetWords, targetChapters, model)
         _createdNovelId.value = id
         return id
     }

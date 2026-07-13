@@ -7,11 +7,13 @@ import io.qzz.lstudy.novelforge.data.ai.ProviderConfigs
 import io.qzz.lstudy.novelforge.data.repository.SettingRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** 设置页 ViewModel：管理 API Key、导出模式、主题、自定义供应商配置 */
+/** 设置页 ViewModel：管理 API Key、导出模式、主题、自定义供应商配置、自定义模型 */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingRepository: SettingRepository
@@ -47,6 +49,20 @@ class SettingsViewModel @Inject constructor(
         .observeCustomModel()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
+    /** 各 provider 的自定义模型列表（按 provider key 索引） */
+    val customModels: StateFlow<Map<String, List<String>>> = combine(
+        ProviderConfigs.ALL.map { cfg ->
+            settingRepository.observeCustomModels(cfg.key)
+                .map { list -> cfg.key to list }
+        }
+    ) { pairs ->
+        pairs.toMap()
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        emptyMap()
+    )
+
     fun setApiKey(provider: String, key: String) {
         viewModelScope.launch { settingRepository.setApiKey(provider, key) }
     }
@@ -71,6 +87,14 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settingRepository.setCustomModel(model) }
     }
 
+    fun addCustomModel(provider: String, model: String) {
+        viewModelScope.launch { settingRepository.addCustomModel(provider, model) }
+    }
+
+    fun removeCustomModel(provider: String, model: String) {
+        viewModelScope.launch { settingRepository.removeCustomModel(provider, model) }
+    }
+
     companion object {
         /** 内置 AI 供应商（provider 标识, 显示名称, 分类） */
         data class ProviderInfo(
@@ -80,7 +104,9 @@ class SettingsViewModel @Inject constructor(
             /** 显示用的首字母（用于圆形头像） */
             val initial: String,
             /** 是否支持通过本应用直接调用（OpenAI 兼容协议） */
-            val callable: Boolean
+            val callable: Boolean,
+            /** 内置模型列表 */
+            val models: List<String>
         )
 
         /** 所有内置供应商，分类排序 */
@@ -92,14 +118,16 @@ class SettingsViewModel @Inject constructor(
                     cfg.key in listOf("deepseek", "qwen", "ernie", "glm", "doubao", "moonshot", "minimax")
                 ) "国内" else "国际",
                 initial = cfg.displayName.firstOrNull()?.toString() ?: "?",
-                callable = cfg.openAiCompatible
+                callable = cfg.openAiCompatible,
+                models = cfg.models
             )
         } + ProviderInfo(
             key = "custom",
             displayName = "自定义供应商",
             category = "自定义",
             initial = "C",
-            callable = true
+            callable = true,
+            models = emptyList()
         )
 
         /** 仅内置供应商（不含自定义），用于 Skill 选择等场景 */

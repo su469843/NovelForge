@@ -162,6 +162,11 @@ fun NovelCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
+                    "Token 消耗：${novel.totalTokens}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+                Text(
                     formatDate(novel.createTime),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline

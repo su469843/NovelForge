@@ -9,7 +9,9 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import org.json.JSONArray
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -134,6 +136,7 @@ class SettingsDataStore @Inject constructor(
         private val KEY_APP_THEME = stringPreferencesKey("app_theme")
         private val KEY_CUSTOM_BASE_URL = stringPreferencesKey("custom_base_url")
         private val KEY_CUSTOM_MODEL = stringPreferencesKey("custom_model")
+        private const val KEY_CUSTOM_MODELS_PREFIX = "custom_models_"
 
         /** 默认导出模式：本地 */
         const val DEFAULT_EXPORT_MODE = "local"
@@ -181,5 +184,47 @@ class SettingsDataStore @Inject constructor(
     /** 设置自定义供应商的模型名 */
     suspend fun setCustomModel(model: String) {
         context.settingsDataStore.edit { it[KEY_CUSTOM_MODEL] = model }
+    }
+
+    // ===================== 用户自定义模型列表 =====================
+
+    /**
+     * 观察用户为某个 provider 添加的自定义模型列表
+     * 存储格式：JSON 数组字符串
+     */
+    fun observeCustomModels(provider: String): Flow<List<String>> = context.settingsDataStore.data
+        .catch { e -> if (e is IOException) emit(androidx.datastore.preferences.core.emptyPreferences()) else throw e }
+        .map { prefs ->
+            val raw = prefs[stringPreferencesKey(KEY_CUSTOM_MODELS_PREFIX + provider)] ?: "[]"
+            try {
+                JSONArray(raw).let { arr ->
+                    (0 until arr.length()).map { arr.optString(it) }.filter { it.isNotBlank() }
+                }
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
+
+    /** 设置某个 provider 的自定义模型列表 */
+    suspend fun setCustomModels(provider: String, models: List<String>) {
+        val arr = JSONArray()
+        models.filter { it.isNotBlank() }.forEach { arr.put(it) }
+        context.settingsDataStore.edit { prefs ->
+            prefs[stringPreferencesKey(KEY_CUSTOM_MODELS_PREFIX + provider)] = arr.toString()
+        }
+    }
+
+    /** 为某个 provider 追加一个自定义模型 */
+    suspend fun addCustomModel(provider: String, model: String) {
+        val current = observeCustomModels(provider).first()
+        if (model.isNotBlank() && !current.contains(model)) {
+            setCustomModels(provider, current + model)
+        }
+    }
+
+    /** 删除某个 provider 的一个自定义模型 */
+    suspend fun removeCustomModel(provider: String, model: String) {
+        val current = observeCustomModels(provider).first()
+        setCustomModels(provider, current.filterNot { it == model })
     }
 }

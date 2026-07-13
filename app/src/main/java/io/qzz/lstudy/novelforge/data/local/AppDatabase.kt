@@ -13,12 +13,12 @@ import io.qzz.lstudy.novelforge.data.local.entity.Skill
  * 应用主数据库
  * 包含 novels、chapters、skills 三张表
  *
- * version = 1：初始版本
+ * version = 2：新增 Novel.totalTokens / targetChapters / model 字段
  * exportSchema = true：导出 schema JSON 以便后续做迁移验证
  */
 @Database(
     entities = [Novel::class, Chapter::class, Skill::class],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
