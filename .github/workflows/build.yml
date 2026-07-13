@@ -24,17 +24,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # 3. 配置 Android SDK
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: |
-            tools
-            platform-tools
-            build-tools;35.0.0
-            platforms;android-35
-
-      # 4. 缓存 Gradle 依赖，加速后续构建
+      # 3. 缓存 Gradle 依赖，加速后续构建
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -43,6 +33,12 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/libs.versions.toml', 'gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
+
+      # 4. 确认 Android SDK 组件就绪（ubuntu-latest 已预装，缺项时按需补装）
+      - name: Ensure Android SDK components
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "platform-tools" "build-tools;35.0.0" "platforms;android-35" || true
 
       # 5. 使用内置 keytool 生成测试签名 keystore（不依赖 GitHub Secrets）
       #    注意：这是测试签名，仅用于验证构建产物；正式发布请改用 Secrets 注入正式 keystore
