@@ -69,6 +69,20 @@ class SettingRepository @Inject constructor(
     /** 设置主题 */
     suspend fun setTheme(themeName: String) = dataStore.setTheme(themeName)
 
+    // ===================== 自定义供应商配置 =====================
+
+    /** 观察自定义供应商的 BaseUrl */
+    fun observeCustomBaseUrl(): Flow<String> = dataStore.observeCustomBaseUrl()
+
+    /** 设置自定义供应商的 BaseUrl */
+    suspend fun setCustomBaseUrl(url: String) = dataStore.setCustomBaseUrl(url)
+
+    /** 观察自定义供应商的模型名 */
+    fun observeCustomModel(): Flow<String> = dataStore.observeCustomModel()
+
+    /** 设置自定义供应商的模型名 */
+    suspend fun setCustomModel(model: String) = dataStore.setCustomModel(model)
+
     companion object {
         /** 本地导出模式标识 */
         const val EXPORT_MODE_LOCAL = SettingsDataStore.DEFAULT_EXPORT_MODE

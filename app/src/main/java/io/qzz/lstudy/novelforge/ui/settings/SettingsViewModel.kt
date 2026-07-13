@@ -3,6 +3,7 @@ package io.qzz.lstudy.novelforge.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.qzz.lstudy.novelforge.data.ai.ProviderConfigs
 import io.qzz.lstudy.novelforge.data.repository.SettingRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -10,7 +11,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** 设置页 ViewModel：管理 API Key 与导出模式 */
+/** 设置页 ViewModel：管理 API Key、导出模式、主题、自定义供应商配置 */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingRepository: SettingRepository
@@ -36,6 +37,16 @@ class SettingsViewModel @Inject constructor(
         .observeTheme()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "purple")
 
+    /** 自定义供应商 BaseUrl */
+    val customBaseUrl: StateFlow<String> = settingRepository
+        .observeCustomBaseUrl()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    /** 自定义供应商模型名 */
+    val customModel: StateFlow<String> = settingRepository
+        .observeCustomModel()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
     fun setApiKey(provider: String, key: String) {
         viewModelScope.launch { settingRepository.setApiKey(provider, key) }
     }
@@ -52,31 +63,43 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settingRepository.setTheme(themeName) }
     }
 
+    fun setCustomBaseUrl(url: String) {
+        viewModelScope.launch { settingRepository.setCustomBaseUrl(url) }
+    }
+
+    fun setCustomModel(model: String) {
+        viewModelScope.launch { settingRepository.setCustomModel(model) }
+    }
+
     companion object {
         /** 内置 AI 供应商（provider 标识, 显示名称, 分类） */
         data class ProviderInfo(
             val key: String,
             val displayName: String,
-            val category: String // "国内" / "国际"
+            val category: String, // "国内" / "国际"
+            /** 显示用的首字母（用于圆形头像） */
+            val initial: String,
+            /** 是否支持通过本应用直接调用（OpenAI 兼容协议） */
+            val callable: Boolean
         )
 
         /** 所有内置供应商，分类排序 */
-        val PROVIDERS: List<ProviderInfo> = listOf(
-            // 国内
-            ProviderInfo("deepseek", "DeepSeek", "国内"),
-            ProviderInfo("qwen", "通义千问 (阿里)", "国内"),
-            ProviderInfo("ernie", "文心一言 (百度)", "国内"),
-            ProviderInfo("glm", "智谱 GLM", "国内"),
-            ProviderInfo("doubao", "豆包 (字节)", "国内"),
-            ProviderInfo("moonshot", "Kimi (月之暗面)", "国内"),
-            ProviderInfo("minimax", "MiniMax", "国内"),
-            // 国际
-            ProviderInfo("openai", "OpenAI", "国际"),
-            ProviderInfo("claude", "Claude (Anthropic)", "国际"),
-            ProviderInfo("gemini", "Google Gemini", "国际"),
-            ProviderInfo("groq", "Groq", "国际"),
-            ProviderInfo("mistral", "Mistral", "国际"),
-            ProviderInfo("custom", "自定义供应商", "自定义")
+        val PROVIDERS: List<ProviderInfo> = ProviderConfigs.ALL.map { cfg ->
+            ProviderInfo(
+                key = cfg.key,
+                displayName = cfg.displayName,
+                category = if (
+                    cfg.key in listOf("deepseek", "qwen", "ernie", "glm", "doubao", "moonshot", "minimax")
+                ) "国内" else "国际",
+                initial = cfg.displayName.firstOrNull()?.toString() ?: "?",
+                callable = cfg.openAiCompatible
+            )
+        } + ProviderInfo(
+            key = "custom",
+            displayName = "自定义供应商",
+            category = "自定义",
+            initial = "C",
+            callable = true
         )
 
         /** 仅内置供应商（不含自定义），用于 Skill 选择等场景 */

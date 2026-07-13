@@ -63,13 +63,14 @@ import java.util.Date
 import java.util.Locale
 
 /** 页面导航枚举 */
-internal enum class Screen { Home, Settings }
+internal enum class Screen { Home, Settings, NovelDetail }
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val homeViewModel: HomeViewModel by viewModels()
     private val settingsViewModel: SettingsViewModel by viewModels()
+    private val novelDetailViewModel: io.qzz.lstudy.novelforge.ui.novel.NovelDetailViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,7 +80,8 @@ class MainActivity : ComponentActivity() {
             NovelForgeTheme(themeName = appTheme) {
                 NovelForgeApp(
                     homeViewModel = homeViewModel,
-                    settingsViewModel = settingsViewModel
+                    settingsViewModel = settingsViewModel,
+                    novelDetailViewModel = novelDetailViewModel
                 )
             }
         }
@@ -89,10 +91,13 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun NovelForgeApp(
     homeViewModel: HomeViewModel,
-    settingsViewModel: SettingsViewModel
+    settingsViewModel: SettingsViewModel,
+    novelDetailViewModel: io.qzz.lstudy.novelforge.ui.novel.NovelDetailViewModel
 ) {
     var currentScreen by remember { mutableStateOf(Screen.Home) }
     var showCreateDialog by remember { mutableStateOf(false) }
+    // 当前查看的小说 ID（点击小说卡片时设置）
+    var currentNovelId by remember { mutableStateOf<Long?>(null) }
     val scope = rememberCoroutineScope()
 
     val novels by homeViewModel.novels.collectAsStateWithLifecycle()
@@ -100,31 +105,69 @@ fun NovelForgeApp(
     val apiKeys by settingsViewModel.apiKeys.collectAsStateWithLifecycle()
     val exportMode by settingsViewModel.exportMode.collectAsStateWithLifecycle()
     val appTheme by settingsViewModel.appTheme.collectAsStateWithLifecycle()
+    val customBaseUrl by settingsViewModel.customBaseUrl.collectAsStateWithLifecycle()
+    val customModel by settingsViewModel.customModel.collectAsStateWithLifecycle()
+
+    /** 打开小说详情 */
+    val openNovel: (Long) -> Unit = { id ->
+        currentNovelId = id
+        currentScreen = Screen.NovelDetail
+    }
 
     // 根据窗口宽度判断布局：平板用侧边栏，手机用全屏切换
     val windowWidth = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
     val isTablet = windowWidth >= 600
+
+    // 优先处理小说详情页（手机/平板都全屏覆盖）
+    if (currentScreen == Screen.NovelDetail && currentNovelId != null) {
+        io.qzz.lstudy.novelforge.ui.novel.NovelDetailScreen(
+            viewModel = novelDetailViewModel,
+            novelId = currentNovelId!!,
+            onBack = {
+                currentNovelId = null
+                currentScreen = Screen.Home
+            }
+        )
+        if (showCreateDialog) {
+            CreateNovelDialog(
+                skills = skills,
+                onDismiss = { showCreateDialog = false },
+                onCreate = { title, targetWords, _ ->
+                    scope.launch {
+                        val id = homeViewModel.createNovel(title, targetWords)
+                        showCreateDialog = false
+                        openNovel(id)
+                    }
+                }
+            )
+        }
+        return
+    }
 
     if (isTablet) {
         TabletLayout(
             novels = novels,
             currentScreen = currentScreen,
             onScreenChange = { currentScreen = it },
-            onNovelClick = { /* TODO */ },
+            onNovelClick = { openNovel(it.id) },
             onDeleteNovel = { homeViewModel.deleteNovel(it) },
             onAddClick = { showCreateDialog = true },
             apiKeys = apiKeys,
             exportMode = exportMode,
             appTheme = appTheme,
+            customBaseUrl = customBaseUrl,
+            customModel = customModel,
             onSetApiKey = { p, k -> settingsViewModel.setApiKey(p, k) },
             onSetExportMode = { settingsViewModel.setExportMode(it) },
-            onSetTheme = { settingsViewModel.setTheme(it) }
+            onSetTheme = { settingsViewModel.setTheme(it) },
+            onSetCustomBaseUrl = { settingsViewModel.setCustomBaseUrl(it) },
+            onSetCustomModel = { settingsViewModel.setCustomModel(it) }
         )
     } else {
         when (currentScreen) {
             Screen.Home -> PhoneHomeScreen(
                 novels = novels,
-                onNovelClick = { /* TODO */ },
+                onNovelClick = { openNovel(it.id) },
                 onDeleteNovel = { homeViewModel.deleteNovel(it) },
                 onAddClick = { showCreateDialog = true },
                 onSettingsClick = { currentScreen = Screen.Settings }
@@ -133,11 +176,16 @@ fun NovelForgeApp(
                 apiKeys = apiKeys,
                 exportMode = exportMode,
                 currentTheme = appTheme,
+                customBaseUrl = customBaseUrl,
+                customModel = customModel,
                 onBack = { currentScreen = Screen.Home },
                 onSetApiKey = { p, k -> settingsViewModel.setApiKey(p, k) },
                 onSetExportMode = { settingsViewModel.setExportMode(it) },
-                onSetTheme = { settingsViewModel.setTheme(it) }
+                onSetTheme = { settingsViewModel.setTheme(it) },
+                onSetCustomBaseUrl = { settingsViewModel.setCustomBaseUrl(it) },
+                onSetCustomModel = { settingsViewModel.setCustomModel(it) }
             )
+            Screen.NovelDetail -> Unit // 上面已处理
         }
     }
 
@@ -147,8 +195,9 @@ fun NovelForgeApp(
             onDismiss = { showCreateDialog = false },
             onCreate = { title, targetWords, _ ->
                 scope.launch {
-                    homeViewModel.createNovel(title, targetWords)
+                    val id = homeViewModel.createNovel(title, targetWords)
                     showCreateDialog = false
+                    openNovel(id)
                 }
             }
         )
@@ -168,9 +217,13 @@ internal fun TabletLayout(
     apiKeys: Map<String, String>,
     exportMode: String,
     appTheme: String,
+    customBaseUrl: String,
+    customModel: String,
     onSetApiKey: (String, String) -> Unit,
     onSetExportMode: (String) -> Unit,
-    onSetTheme: (String) -> Unit
+    onSetTheme: (String) -> Unit,
+    onSetCustomBaseUrl: (String) -> Unit,
+    onSetCustomModel: (String) -> Unit
 ) {
     Row(modifier = Modifier.fillMaxSize()) {
         // 侧边栏
@@ -311,14 +364,19 @@ internal fun TabletLayout(
                     onDeleteNovel = onDeleteNovel,
                     onAddClick = onAddClick
                 )
+                Screen.NovelDetail -> Unit // 已在 NovelForgeApp 中处理
                 Screen.Settings -> SettingsScreen(
                     apiKeys = apiKeys,
                     exportMode = exportMode,
                     currentTheme = appTheme,
+                    customBaseUrl = customBaseUrl,
+                    customModel = customModel,
                     onBack = { onScreenChange(Screen.Home) },
                     onSetApiKey = onSetApiKey,
                     onSetExportMode = onSetExportMode,
-                    onSetTheme = onSetTheme
+                    onSetTheme = onSetTheme,
+                    onSetCustomBaseUrl = onSetCustomBaseUrl,
+                    onSetCustomModel = onSetCustomModel
                 )
             }
         }

@@ -132,6 +132,8 @@ class SettingsDataStore @Inject constructor(
         private val KEY_DEFAULT_WORDS_PER_CHAPTER =
             androidx.datastore.preferences.core.intPreferencesKey("default_words_per_chapter")
         private val KEY_APP_THEME = stringPreferencesKey("app_theme")
+        private val KEY_CUSTOM_BASE_URL = stringPreferencesKey("custom_base_url")
+        private val KEY_CUSTOM_MODEL = stringPreferencesKey("custom_model")
 
         /** 默认导出模式：本地 */
         const val DEFAULT_EXPORT_MODE = "local"
@@ -157,5 +159,28 @@ class SettingsDataStore @Inject constructor(
     /** 设置主题 */
     suspend fun setTheme(themeName: String) {
         context.settingsDataStore.edit { it[KEY_APP_THEME] = themeName }
+    }
+
+    // ===================== 自定义供应商配置 =====================
+
+    /** 观察自定义供应商的 BaseUrl */
+    fun observeCustomBaseUrl(): Flow<String> = context.settingsDataStore.data
+        .catch { e -> if (e is IOException) emit(androidx.datastore.preferences.core.emptyPreferences()) else throw e }
+        .map { it[KEY_CUSTOM_BASE_URL] ?: "" }
+
+    /** 设置自定义供应商的 BaseUrl */
+    suspend fun setCustomBaseUrl(url: String) {
+        context.settingsDataStore.edit { it[KEY_CUSTOM_BASE_URL] = url }
+    }
+
+    /** 观察自定义供应商的模型名 */
+    fun observeCustomModel(): Flow<String> = context.settingsDataStore.data
+        .catch { e -> if (e is IOException) emit(androidx.datastore.preferences.core.emptyPreferences()) else throw e }
+        .map { it[KEY_CUSTOM_MODEL] ?: "" }
+    }
+
+    /** 设置自定义供应商的模型名 */
+    suspend fun setCustomModel(model: String) {
+        context.settingsDataStore.edit { it[KEY_CUSTOM_MODEL] = model }
     }
 }
