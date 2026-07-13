@@ -158,7 +158,7 @@ fun NovelForgeApp(
 // ===================== 平板侧边栏布局 =====================
 
 @Composable
-fun TabletLayout(
+internal fun TabletLayout(
     novels: List<Novel>,
     currentScreen: Screen,
     onScreenChange: (Screen) -> Unit,
