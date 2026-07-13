@@ -35,16 +35,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import io.qzz.lstudy.novelforge.data.repository.SettingRepository
+import io.qzz.lstudy.novelforge.ui.theme.ALL_THEMES
 
-/** 设置页：API Key 管理 + 导出模式选择 */
+/** 设置页：API Key 管理 + 导出模式选择 + 主题切换 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     apiKeys: Map<String, String>,
     exportMode: String,
+    currentTheme: String = "purple",
     onBack: () -> Unit = {},
     onSetApiKey: (provider: String, key: String) -> Unit = { _, _ -> },
-    onSetExportMode: (mode: String) -> Unit = {}
+    onSetExportMode: (mode: String) -> Unit = {},
+    onSetTheme: (theme: String) -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -112,6 +115,43 @@ fun SettingsScreen(
                 currentCustomKey = apiKeys["custom"] ?: "",
                 onSave = { onSetApiKey("custom", it) }
             )
+
+            Spacer(Modifier.height(8.dp))
+
+            // 主题切换区域
+            Text("主题颜色", style = MaterialTheme.typography.titleMedium)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    ALL_THEMES.forEach { themeInfo ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSetTheme(themeInfo.key) }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = currentTheme == themeInfo.key,
+                                onClick = { onSetTheme(themeInfo.key) }
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text(themeInfo.displayName, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    themeInfo.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             Spacer(Modifier.height(8.dp))
 

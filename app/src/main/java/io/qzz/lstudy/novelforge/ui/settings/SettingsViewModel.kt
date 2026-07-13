@@ -31,6 +31,11 @@ class SettingsViewModel @Inject constructor(
         .observeApiKeys()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
+    /** 当前主题名称 */
+    val appTheme: StateFlow<String> = settingRepository
+        .observeTheme()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "purple")
+
     fun setApiKey(provider: String, key: String) {
         viewModelScope.launch { settingRepository.setApiKey(provider, key) }
     }
@@ -41,6 +46,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setActiveProvider(provider: String) {
         viewModelScope.launch { settingRepository.setActiveProvider(provider) }
+    }
+
+    fun setTheme(themeName: String) {
+        viewModelScope.launch { settingRepository.setTheme(themeName) }
     }
 
     companion object {

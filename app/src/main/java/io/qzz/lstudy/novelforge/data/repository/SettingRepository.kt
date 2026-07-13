@@ -61,6 +61,14 @@ class SettingRepository @Inject constructor(
     /** 设置默认每章字数 */
     suspend fun setDefaultWordsPerChapter(words: Int) = dataStore.setDefaultWordsPerChapter(words)
 
+    // ===================== 主题 =====================
+
+    /** 观察当前主题名称 */
+    fun observeTheme(): Flow<String> = dataStore.observeTheme()
+
+    /** 设置主题 */
+    suspend fun setTheme(themeName: String) = dataStore.setTheme(themeName)
+
     companion object {
         /** 本地导出模式标识 */
         const val EXPORT_MODE_LOCAL = SettingsDataStore.DEFAULT_EXPORT_MODE
