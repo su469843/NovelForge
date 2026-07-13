@@ -61,7 +61,9 @@ jobs:
           SIGNING_KEYSTORE_PASSWORD: novelforge_test
           SIGNING_KEY_ALIAS: novelforge_test
           SIGNING_KEY_PASSWORD: novelforge_test
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       # 7. 校验 APK 签名（使用 apksigner verify）
       - name: Verify APK signature
