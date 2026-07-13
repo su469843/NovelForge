@@ -157,7 +157,6 @@ fun NovelForgeApp(
 
 // ===================== 平板侧边栏布局 =====================
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TabletLayout(
     novels: List<Novel>,
@@ -179,7 +178,7 @@ fun TabletLayout(
             modifier = Modifier
                 .width(280.dp)
                 .fillMaxHeight(),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            color = MaterialTheme.colorScheme.surfaceVariant,
             shadowElevation = 4.dp
         ) {
             Column(

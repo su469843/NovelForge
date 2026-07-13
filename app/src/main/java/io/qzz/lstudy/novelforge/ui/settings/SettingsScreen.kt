@@ -137,7 +137,7 @@ fun SettingsScreen(
                         ) {
                             RadioButton(
                                 selected = currentTheme == themeInfo.key,
-                                onClick = { onSetTheme(themeInfo.key) }
+                                onClick = null // 由外层 Row 的 clickable 统一处理
                             )
                             Spacer(Modifier.width(8.dp))
                             Column {
