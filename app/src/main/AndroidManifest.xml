@@ -28,6 +28,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 崩溃展示页，无标题栏 -->
+        <activity
+            android:name=".crash.CrashActivity"
+            android:exported="false"
+            android:theme="@style/Theme.NovelForge"
+            android:process=":crash"
+            android:excludeFromRecents="true" />
     </application>
 
 </manifest>

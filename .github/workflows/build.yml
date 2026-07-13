@@ -1,6 +1,6 @@
 name: Build Release APK
 
-# 触发条件：推送到 main 分支、打 tag、或手动触发
+# 触发条件：推送到 main 分支、打 tag（v* 格式）、或手动触发
 on:
   push:
     branches: [ main ]
@@ -34,14 +34,13 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/libs.versions.toml', 'gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      # 4. 确认 Android SDK 组件就绪（ubuntu-latest 已预装，缺项时按需补装）
+      # 4. 确认 Android SDK 组件就绪
       - name: Ensure Android SDK components
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
             "platform-tools" "build-tools;35.0.0" "platforms;android-35" || true
 
-      # 5. 使用内置 keytool 生成测试签名 keystore（不依赖 GitHub Secrets）
-      #    注意：这是测试签名，仅用于验证构建产物；正式发布请改用 Secrets 注入正式 keystore
+      # 5. 使用内置 keytool 生成测试签名 keystore
       - name: Generate test signing keystore
         run: |
           echo "使用 keytool 生成测试用 keystore..."
@@ -51,10 +50,10 @@ jobs:
             -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass novelforge_test -keypass novelforge_test \
             -dname "CN=NovelForge Test, OU=Dev, O=NovelForge, L=Beijing, ST=Beijing, C=CN"
-          echo "测试 keystore 已生成：$RUNNER_TEMP/novelforge_test.keystore"
+          echo "测试 keystore 已生成"
           ls -lh $RUNNER_TEMP/novelforge_test.keystore
 
-      # 6. 构建 Release APK（通过环境变量注入测试签名信息）
+      # 6. 构建 Release APK
       - name: Build Release APK
         env:
           SIGNING_KEYSTORE_PATH: ${{ runner.temp }}/novelforge_test.keystore
@@ -65,16 +64,23 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace
 
-      # 7. 校验 APK 签名（使用 apksigner verify）
+      # 7. 校验 APK 签名
       - name: Verify APK signature
         run: |
           APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
           echo "校验 APK：$APK_PATH"
           $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs "$APK_PATH" || true
-          echo "APK 文件信息："
           ls -lh app/build/outputs/apk/release/
 
-      # 8. 上传 APK 构建产物（可在 Actions 页面直接下载）
+      # 8. 重命名 APK（带版本号，方便识别）
+      - name: Rename APK
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          REF_NAME="${GITHUB_REF_NAME:-snapshot}"
+          cp "$APK_PATH" "app/build/outputs/apk/release/NovelForge_${REF_NAME}.apk"
+          ls -lh app/build/outputs/apk/release/
+
+      # 9. 上传 APK 构建产物（Actions 页面下载）
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -83,7 +89,7 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      # 9. 同时上传构建映射与日志，便于排查
+      # 10. 上传构建报告
       - name: Upload Build Reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -94,3 +100,28 @@ jobs:
             build/reports/
           retention-days: 7
           if-no-files-found: ignore
+
+      # 11. 打 tag 时自动发布 GitHub Release
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "NovelForge ${{ github.ref_name }}"
+          body: |
+            ## NovelForge ${{ github.ref_name }}
+
+            小说创作助手 App，支持 AI 多模型写作、创作风格模板、双模导出。
+
+            ### 变更
+            - 查看 [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/UPDATE/chenglog.md)
+
+            ### 安装
+            下载下方 APK 文件，在 Android 设备上直接安装。
+
+            > **注意**：此 APK 使用测试签名，每次更新需卸载旧版本后重新安装。
+          draft: false
+          prerelease: false
+          files: |
+            app/build/outputs/apk/release/NovelForge_*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

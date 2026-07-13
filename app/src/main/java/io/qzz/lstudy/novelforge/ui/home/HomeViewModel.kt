@@ -4,36 +4,46 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.qzz.lstudy.novelforge.data.local.entity.Novel
+import io.qzz.lstudy.novelforge.data.local.entity.Skill
 import io.qzz.lstudy.novelforge.data.repository.NovelRepository
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** 主页 ViewModel：管理小说列表 */
+/** 主页 ViewModel：管理小说列表与创建流程 */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val novelRepository: NovelRepository
 ) : ViewModel() {
 
-    /** 所有小说列表，按创建时间倒序，内存中保持最近值 */
+    /** 所有小说列表，按创建时间倒序 */
     val novels: StateFlow<List<Novel>> = novelRepository
         .observeAllNovels()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    /**
-     * 创建一部新小说
-     * @return 新小说的 ID
-     */
-    fun createNovel(title: String, targetWords: Int): Long {
-        var novelId = 0L
-        viewModelScope.launch {
-            novelId = novelRepository.createNovel(title, targetWords)
-        }
-        // 注：此处为简化，用同步方式获取 ID；后续阶段会改用 StateFlow 承载结果
-        // 实际场景中 createNovel 是 suspend 函数，由调用方在协程中调用
-        return novelId
+    /** 所有 Skill 模板列表 */
+    val skills: StateFlow<List<Skill>> = novelRepository
+        .observeAllSkills()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _createdNovelId = MutableStateFlow<Long?>(null)
+    /** 最近创建的小说 ID，创建成功后短暂置为非 null，UI 消费后自动重置 */
+    val createdNovelId: StateFlow<Long?> = _createdNovelId.asStateFlow()
+
+    /** 创建一部新小说，返回新 ID */
+    suspend fun createNovel(title: String, targetWords: Int): Long {
+        val id = novelRepository.createNovel(title, targetWords)
+        _createdNovelId.value = id
+        return id
+    }
+
+    /** 消费创建成功事件 */
+    fun consumeCreatedNovel() {
+        _createdNovelId.value = null
     }
 
     /** 删除小说 */

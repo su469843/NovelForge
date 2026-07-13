@@ -44,12 +44,33 @@ class SettingsViewModel @Inject constructor(
     }
 
     companion object {
-        /** 支持的 AI 模型列表 */
-        val PROVIDERS = listOf(
-            "deepseek" to "DeepSeek",
-            "openai" to "OpenAI",
-            "claude" to "Claude (Anthropic)",
-            "minimax" to "MiniMax"
+        /** 内置 AI 供应商（provider 标识, 显示名称, 分类） */
+        data class ProviderInfo(
+            val key: String,
+            val displayName: String,
+            val category: String // "国内" / "国际"
         )
+
+        /** 所有内置供应商，分类排序 */
+        val PROVIDERS: List<ProviderInfo> = listOf(
+            // 国内
+            ProviderInfo("deepseek", "DeepSeek", "国内"),
+            ProviderInfo("qwen", "通义千问 (阿里)", "国内"),
+            ProviderInfo("ernie", "文心一言 (百度)", "国内"),
+            ProviderInfo("glm", "智谱 GLM", "国内"),
+            ProviderInfo("doubao", "豆包 (字节)", "国内"),
+            ProviderInfo("moonshot", "Kimi (月之暗面)", "国内"),
+            ProviderInfo("minimax", "MiniMax", "国内"),
+            // 国际
+            ProviderInfo("openai", "OpenAI", "国际"),
+            ProviderInfo("claude", "Claude (Anthropic)", "国际"),
+            ProviderInfo("gemini", "Google Gemini", "国际"),
+            ProviderInfo("groq", "Groq", "国际"),
+            ProviderInfo("mistral", "Mistral", "国际"),
+            ProviderInfo("custom", "自定义供应商", "自定义")
+        )
+
+        /** 仅内置供应商（不含自定义），用于 Skill 选择等场景 */
+        val BUILTIN_PROVIDERS = PROVIDERS.filter { it.key != "custom" }
     }
 }
