@@ -177,7 +177,6 @@ class SettingsDataStore @Inject constructor(
     fun observeCustomModel(): Flow<String> = context.settingsDataStore.data
         .catch { e -> if (e is IOException) emit(androidx.datastore.preferences.core.emptyPreferences()) else throw e }
         .map { it[KEY_CUSTOM_MODEL] ?: "" }
-    }
 
     /** 设置自定义供应商的模型名 */
     suspend fun setCustomModel(model: String) {
