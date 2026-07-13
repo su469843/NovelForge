@@ -1,0 +1,98 @@
+name: Build Release APK
+
+# 触发条件：推送到 main 分支、打 tag、或手动触发
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Signed Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 检出代码
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. 配置 JDK 17（AGP 8.9 要求 JDK 17+）
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # 3. 配置 Android SDK
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            tools
+            platform-tools
+            build-tools;35.0.0
+            platforms;android-35
+
+      # 4. 缓存 Gradle 依赖，加速后续构建
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/libs.versions.toml', 'gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      # 5. 使用内置 keytool 生成测试签名 keystore（不依赖 GitHub Secrets）
+      #    注意：这是测试签名，仅用于验证构建产物；正式发布请改用 Secrets 注入正式 keystore
+      - name: Generate test signing keystore
+        run: |
+          echo "使用 keytool 生成测试用 keystore..."
+          keytool -genkeypair -v \
+            -keystore $RUNNER_TEMP/novelforge_test.keystore \
+            -alias novelforge_test \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass novelforge_test -keypass novelforge_test \
+            -dname "CN=NovelForge Test, OU=Dev, O=NovelForge, L=Beijing, ST=Beijing, C=CN"
+          echo "测试 keystore 已生成：$RUNNER_TEMP/novelforge_test.keystore"
+          ls -lh $RUNNER_TEMP/novelforge_test.keystore
+
+      # 6. 构建 Release APK（通过环境变量注入测试签名信息）
+      - name: Build Release APK
+        env:
+          SIGNING_KEYSTORE_PATH: ${{ runner.temp }}/novelforge_test.keystore
+          SIGNING_KEYSTORE_PASSWORD: novelforge_test
+          SIGNING_KEY_ALIAS: novelforge_test
+          SIGNING_KEY_PASSWORD: novelforge_test
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      # 7. 校验 APK 签名（使用 apksigner verify）
+      - name: Verify APK signature
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          echo "校验 APK：$APK_PATH"
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs "$APK_PATH" || true
+          echo "APK 文件信息："
+          ls -lh app/build/outputs/apk/release/
+
+      # 8. 上传 APK 构建产物（可在 Actions 页面直接下载）
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NovelForge-release-apk
+          path: app/build/outputs/apk/release/*.apk
+          retention-days: 30
+          if-no-files-found: error
+
+      # 9. 同时上传构建映射与日志，便于排查
+      - name: Upload Build Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-reports
+          path: |
+            app/build/reports/
+            build/reports/
+          retention-days: 7
+          if-no-files-found: ignore

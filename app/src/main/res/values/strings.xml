@@ -1,0 +1,58 @@
+<resources>
+    <string name="app_name">NovelForge</string>
+
+    <!-- 通用 -->
+    <string name="common_loading">加载中…</string>
+    <string name="common_retry">重试</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_confirm">确认</string>
+    <string name="common_save">保存</string>
+    <string name="common_delete">删除</string>
+    <string name="common_edit">编辑</string>
+    <string name="common_empty">暂无数据</string>
+    <string name="common_error">发生错误：%1$s</string>
+
+    <!-- 主页 -->
+    <string name="home_title">我的小说</string>
+    <string name="home_create_new">新建小说</string>
+
+    <!-- 新建/编辑小说 -->
+    <string name="novel_title_label">小说名称</string>
+    <string name="novel_title_hint">请输入小说名称</string>
+    <string name="novel_skill_label">创作风格</string>
+    <string name="novel_skill_hint">搜索并选择创作风格</string>
+    <string name="novel_target_words_label">目标总字数</string>
+    <string name="novel_target_words_hint">例如：200000</string>
+    <string name="novel_chapter_count_label">目标章节数</string>
+    <string name="novel_chapter_count_hint">例如：10</string>
+    <string name="novel_words_per_chapter_label">每章字数</string>
+    <string name="novel_words_per_chapter_hint">例如：2000</string>
+    <string name="novel_start_outline">开始构思</string>
+
+    <!-- 写作/阅读页 -->
+    <string name="writing_continue">继续写</string>
+    <string name="writing_export">导出</string>
+    <string name="writing_generating">AI 生成中…</string>
+
+    <!-- 设置页 -->
+    <string name="settings_title">设置</string>
+    <string name="settings_api_key_label">%1$s API Key</string>
+    <string name="settings_api_key_hint">请输入 %1$s 的 API Key</string>
+    <string name="settings_test_connection">测试连接</string>
+    <string name="settings_test_success">连接成功</string>
+    <string name="settings_test_failed">连接失败：%1$s</string>
+    <string name="settings_export_mode_label">默认导出模式</string>
+    <string name="settings_export_mode_local">本地安全模式</string>
+    <string name="settings_export_mode_cloud">云端极速模式</string>
+
+    <!-- 导出弹窗 -->
+    <string name="export_title">选择导出方式</string>
+    <string name="export_local_title">🔒 本地安全模式（推荐）</string>
+    <string name="export_local_desc">通过离线插件生成，小说内容不出本机</string>
+    <string name="export_cloud_title">☁️ 云端极速模式</string>
+    <string name="export_cloud_desc">调用云端 Worker 转换，速度快但需上传内容</string>
+    <string name="export_privacy_note">隐私说明：本地模式不会上传任何小说内容；云端模式会将章节内容发送至你配置的 Worker 地址进行转换。</string>
+    <string name="export_format_txt">导出 TXT</string>
+    <string name="export_format_md">导出 Markdown</string>
+    <string name="export_format_docx">导出 Word (.docx)</string>
+</resources>

@@ -1,0 +1,27 @@
+package io.qzz.lstudy.novelforge.data.local.entity
+
+import androidx.room.Entity
+import androidx.room.Index
+import androidx.room.PrimaryKey
+
+/**
+ * 小说实体类
+ * 对应数据库中的 novels 表，存储一本小说的基本信息
+ */
+@Entity(
+    tableName = "novels",
+    indices = [Index(value = ["title"], unique = false)]
+)
+data class Novel(
+    /** 主键ID，自增 */
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    /** 小说标题 */
+    val title: String,
+    /** 目标总字数 */
+    val targetWords: Int,
+    /** 当前已写字数 */
+    val currentWords: Int = 0,
+    /** 创建时间戳（毫秒） */
+    val createTime: Long
+)
