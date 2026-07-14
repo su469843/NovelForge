@@ -107,7 +107,7 @@ fun CreateNovelDialog(
                 OutlinedTextField(
                     value = targetChapters,
                     onValueChange = { if (it.all(Char::isDigit)) targetChapters = it },
-                    label = { Text("目标章节数（用于"一次性生成全部"）") },
+                    label = { Text("目标章节数（用于「一次性生成全部」）") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
