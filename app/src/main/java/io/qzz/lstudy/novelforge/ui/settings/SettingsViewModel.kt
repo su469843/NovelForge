@@ -5,9 +5,10 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.qzz.lstudy.novelforge.data.ai.ProviderConfigs
 import io.qzz.lstudy.novelforge.data.repository.SettingRepository
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -50,18 +51,20 @@ class SettingsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
     /** 各 provider 的自定义模型列表（按 provider key 索引） */
-    val customModels: StateFlow<Map<String, List<String>>> = combine(
-        ProviderConfigs.ALL.map { cfg ->
-            settingRepository.observeCustomModels(cfg.key)
-                .map { list -> cfg.key to list }
+    val customModels: StateFlow<Map<String, List<String>>>
+
+    init {
+        val mapFlow = MutableStateFlow<Map<String, List<String>>>(emptyMap())
+        customModels = mapFlow.asStateFlow()
+        // 收集每个 provider 的自定义模型，合并到一个 Map 中
+        ProviderConfigs.ALL.forEach { cfg ->
+            viewModelScope.launch {
+                settingRepository.observeCustomModels(cfg.key).collect { models ->
+                    mapFlow.value = mapFlow.value + (cfg.key to models)
+                }
+            }
         }
-    ) { pairs ->
-        pairs.toMap()
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        emptyMap()
-    )
+    }
 
     fun setApiKey(provider: String, key: String) {
         viewModelScope.launch { settingRepository.setApiKey(provider, key) }
