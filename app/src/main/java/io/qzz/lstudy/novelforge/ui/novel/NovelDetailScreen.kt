@@ -1,3 +1,4 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
 package io.qzz.lstudy.novelforge.ui.novel
 
 import androidx.compose.foundation.clickable
